@@ -5,7 +5,7 @@ CC = gcc
 CFLAGS = -Wall -Wextra -Werror -std=c11
 
 # Target executable
-TARGET = image_sorter
+TARGET = image-sorter
 
 # Source files
 SRCS = image_sorter.c

@@ -7,7 +7,7 @@
 #include <errno.h>
 
 #pragma region Function Prototypes
-char* GetDesktopPath(void);
+char* GetWorkingDirectoryPath(char* wd);
 DIR* OpenDirectory(char* path);
 int IsImageFile(const char* filename);
 void MoveFilesToFolder(DIR* sourceDir, char* fpath);
@@ -23,7 +23,7 @@ static char* folderPath;
 int main(void) {
     printf("Sorting program starting...\n");
 
-    homePath = GetDesktopPath();
+    homePath = GetWorkingDirectoryPath("Desktop");
     folderPath = GetSortedFolderPath("images");
     MakeFolder(folderPath);
 
@@ -86,7 +86,7 @@ char* GetSortedFolderPath(char* fname) {
     return folderPath;
 }
 
-char* GetDesktopPath(void){
+char* GetWorkingDirectoryPath(char* wd){
     char* homeDirectory = getenv("HOME");
     if(homeDirectory == NULL){
         printf("Error: failed to get HOME directory from environment variables");
@@ -94,17 +94,17 @@ char* GetDesktopPath(void){
     }
 
     //creating buffer
-    size_t pathLen = strlen(homeDirectory) + strlen("/Desktop");
-    char* desktopPath = (char*)malloc(sizeof(char)*(pathLen+1));  //Plus one for null terminator
-    if (desktopPath == NULL) {
+    size_t pathLen = strlen(homeDirectory) + strlen(wd) + 2; //Plus 2 for "/" and null terminator
+    char* wdpath = (char*)malloc(sizeof(char)*(pathLen));  //Plus 1 for null terminator
+    if (wdpath == NULL) {
         fprintf(stderr, "Error: memory allocation failed\n");
         exit(1);
     }
     // Construct the Desktop path
-    snprintf(desktopPath, pathLen + 1, "%s/Desktop", homeDirectory);
+    snprintf(wdpath, pathLen, "%s/%s", homeDirectory, wd);  //Plus 1 for null terminator
 
-    printf("Desktop path: %s\n", desktopPath);
-    return desktopPath;
+    printf("%s path: %s\n", wd, wdpath);
+    return wdpath;
 }
 
 DIR* OpenDirectory(char* path){
