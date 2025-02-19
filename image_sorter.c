@@ -13,38 +13,73 @@ int IsImageFile(const char* filename);
 void MoveFilesToFolder(DIR* sourceDir, char* fpath);
 char* GetSortedFolderPath(char* fname);
 void MoveFile(const char* sourcePath, const char* destinationPath);
-void MakeFolder(const char* fpath);
+int MakeFolder(const char* fpath);
+int SortDirectory(char* dname);
 #pragma endregion
 
 //static variable
-static char* homePath;
-static char* folderPath;
+static char* wdPath;
+static char* sortedPath;
 
 int main(void) {
     printf("Sorting program starting...\n");
-
-    homePath = GetWorkingDirectoryPath("Desktop");
-    folderPath = GetSortedFolderPath("images");
-    MakeFolder(folderPath);
-
-    DIR* sortDirectory = OpenDirectory(homePath);
-    MoveFilesToFolder(sortDirectory, folderPath);
-    free(homePath);
-    free(folderPath);
+    printf("Enter directory to be sorted separated by space: ");
+    char buffer[100];
+    if(fgets(buffer, 100, stdin) == NULL){
+        perror("Input not properly received");
+        exit(0);
+    }
+    
+    SortDirectory("Desktops");
     return 0;
 }
 
-void MakeFolder(const char* fpath) {
+// void Tokenize(char* buffer) {
+//     int count = 0;
+//     // Skip leading spaces and count characters until space or end
+//     while (*buffer) {
+//         // Skip spaces
+//         while (*buffer == ' ') buffer++;
+//         if (!*buffer) break;  // End of string after spaces
+//         // Count characters
+//         count = 0;
+//         while (*buffer && *buffer != ' ') {
+//             count++;
+//             buffer++;
+//         }
+//         if (count > 0) printf("%d\n", count);
+//     }
+// }
+
+int SortDirectory(char* dname){
+    wdPath = GetWorkingDirectoryPath(dname);  //No check
+    sortedPath = GetSortedFolderPath("images");   //No check
+    if(MakeFolder(sortedPath) == -1){
+        printf("Error: Entered directory '%s' does not exist", dname); 
+        return -1;
+    }
+
+    DIR* sortDirectory = OpenDirectory(wdPath);   // maybe check
+    MoveFilesToFolder(sortDirectory, sortedPath);  //no check
+    free(wdPath);
+    wdPath = NULL;
+    free(sortedPath);
+    sortedPath = NULL;
+    return 0;
+}
+
+int MakeFolder(const char* fpath) {
     if (mkdir(fpath, 0777) == -1) {
         if (errno != EEXIST) {
-            perror("Error creating folder");
-            exit(1);
+            perror("Directory entered does not exist");
+            return -1;
         } else {
             printf("Folder already exists: %s\n", fpath);
         }
     } else {
         printf("Created folder: %s\n", fpath);
     }
+    return 0;
 }
 
 void MoveFilesToFolder(DIR* sourceDir, char* fpath) {
@@ -58,7 +93,7 @@ void MoveFilesToFolder(DIR* sourceDir, char* fpath) {
             && IsImageFile(entry->d_name)
         ) { 
             printf("Found image: %s\n", entry->d_name);
-            snprintf(srcFilePath, sizeof(srcFilePath), "%s/%s", homePath, entry->d_name);
+            snprintf(srcFilePath, sizeof(srcFilePath), "%s/%s", wdPath, entry->d_name);
 
             snprintf(dstFilePath, sizeof(dstFilePath), "%s/%s", fpath, entry->d_name);
             MoveFile(srcFilePath, dstFilePath);
@@ -75,14 +110,14 @@ void MoveFile(const char* sourcePath, const char* destinationPath) {
 }
 
 char* GetSortedFolderPath(char* fname) {
-    size_t pathLen = strlen(homePath) + strlen(fname) + 2;
+    size_t pathLen = strlen(wdPath) + strlen(fname) + 2;
     char* folderPath = (char*)malloc(pathLen);
     if (folderPath == NULL) {
         perror("Error allocating memory for sorted folder path");
         exit(1);
     }
 
-    snprintf(folderPath, pathLen, "%s/%s", homePath, fname);
+    snprintf(folderPath, pathLen, "%s/%s", wdPath, fname);
     return folderPath;
 }
 
@@ -101,7 +136,7 @@ char* GetWorkingDirectoryPath(char* wd){
         exit(1);
     }
     // Construct the Desktop path
-    snprintf(wdpath, pathLen, "%s/%s", homeDirectory, wd);  //Plus 1 for null terminator
+    snprintf(wdpath, pathLen, "%s/%s", homeDirectory, wd);
 
     printf("%s path: %s\n", wd, wdpath);
     return wdpath;
@@ -131,7 +166,6 @@ int IsImageFile(const char* filename) {
 
 // void PrintImageInDirectory(DIR* dir) {
 //     struct dirent* entry;
-
 //     while ((entry = readdir(dir)) != NULL) {
 //         if (
 //             entry->d_type == DT_REG 
