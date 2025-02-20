@@ -16,6 +16,7 @@ char* GetSortedFolderPath(char* fname);
 void MoveFile(const char* sourcePath, const char* destinationPath);
 int MakeFolder(const char* fpath);
 int SortDirectory(char* dname);
+int TokenizeAndProcess(char* str);
 #pragma endregion
 
 //static variable
@@ -30,8 +31,12 @@ int main(void) {
         perror("Input not properly received");
         exit(0);
     }
+    size_t len = strlen(buffer);
+    if (len > 0 && buffer[len - 1] == '\n') {
+        buffer[len - 1] = '\0';
+    }
 
-    SortDirectory("Desktop");
+    TokenizeAndProcess(buffer);
     return 0;
 }
 
@@ -42,22 +47,28 @@ void FreeStaticMemory(){
     sortedPath = NULL;
 }
 
-// void Tokenize(char* buffer) {
-//     int count = 0;
-//     // Skip leading spaces and count characters until space or end
-//     while (*buffer) {
-//         // Skip spaces
-//         while (*buffer == ' ') buffer++;
-//         if (!*buffer) break;  // End of string after spaces
-//         // Count characters
-//         count = 0;
-//         while (*buffer && *buffer != ' ') {
-//             count++;
-//             buffer++;
-//         }
-//         if (count > 0) printf("%d\n", count);
-//     }
-// }
+int TokenizeAndProcess(char* str) {
+    int count = 0;
+    char buf[100];
+    //Loop through the string
+    while (*str) {
+        // Skip spaces
+        while (*str == ' ') str++;
+        if (!*str) break;        
+        // Count characters
+        count = 0;
+        while (*str && *str != ' ') {
+            count++;
+            str++;
+        }
+        if (count > 0){
+            strncpy(buf, str-count, count);
+            buf[count]='\0';
+            if(SortDirectory(buf) == -1) return -1;
+        }
+    }
+    return 0;
+}
 
 int SortDirectory(char* dname){
     wdPath = GetWorkingDirectoryPath(dname);  //No check
@@ -77,7 +88,6 @@ int SortDirectory(char* dname){
 int MakeFolder(const char* fpath) {
     if (mkdir(fpath, 0777) == -1) {
         if (errno != EEXIST) {
-            perror("Directory entered does not exist");
             return -1;
         } else {
             printf("Folder already exists: %s\n", fpath);
