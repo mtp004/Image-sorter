@@ -7,6 +7,7 @@
 #include <errno.h>
 
 #pragma region Function Prototypes
+void FreeStaticMemory();
 char* GetWorkingDirectoryPath(char* wd);
 DIR* OpenDirectory(char* path);
 int IsImageFile(const char* filename);
@@ -29,9 +30,16 @@ int main(void) {
         perror("Input not properly received");
         exit(0);
     }
-    
-    SortDirectory("Desktops");
+
+    SortDirectory("Desktop");
     return 0;
+}
+
+void FreeStaticMemory(){
+    free(wdPath);
+    wdPath = NULL;
+    free(sortedPath);
+    sortedPath = NULL;
 }
 
 // void Tokenize(char* buffer) {
@@ -55,16 +63,14 @@ int SortDirectory(char* dname){
     wdPath = GetWorkingDirectoryPath(dname);  //No check
     sortedPath = GetSortedFolderPath("images");   //No check
     if(MakeFolder(sortedPath) == -1){
-        printf("Error: Entered directory '%s' does not exist", dname); 
+        printf("Error: Entered directory '%s' does not exist", dname);
+        FreeStaticMemory(); 
         return -1;
     }
 
     DIR* sortDirectory = OpenDirectory(wdPath);   // maybe check
     MoveFilesToFolder(sortDirectory, sortedPath);  //no check
-    free(wdPath);
-    wdPath = NULL;
-    free(sortedPath);
-    sortedPath = NULL;
+    FreeStaticMemory();
     return 0;
 }
 
