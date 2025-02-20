@@ -24,17 +24,18 @@ static char* wdPath;
 static char* sortedPath;
 
 int main(void) {
-    printf("Sorting program starting...\n");
-    printf("Enter directory to be sorted separated by space: ");
+    printf("Program starting...\n");
+    printf("Enter HOME subdirectories separated by space | Press [ENTER] to exit program: ");
     char buffer[100];
     if(fgets(buffer, 100, stdin) == NULL){
         perror("Input not properly received");
         exit(0);
     }
     size_t len = strlen(buffer);
-    if (len > 0 && buffer[len - 1] == '\n') {
+    if (buffer[len - 1] == '\n') {
         buffer[len - 1] = '\0';
     }
+    if(buffer[0] == '\0') exit(0);
 
     TokenizeAndProcess(buffer);
     return 0;
@@ -108,7 +109,7 @@ void MoveFilesToFolder(DIR* sourceDir, char* fpath) {
             entry->d_type == DT_REG 
             && IsImageFile(entry->d_name)
         ) { 
-            printf("Found image: %s\n", entry->d_name);
+            printf("  Found image: %s\n", entry->d_name);
             snprintf(srcFilePath, sizeof(srcFilePath), "%s/%s", wdPath, entry->d_name);
 
             snprintf(dstFilePath, sizeof(dstFilePath), "%s/%s", fpath, entry->d_name);
@@ -119,7 +120,7 @@ void MoveFilesToFolder(DIR* sourceDir, char* fpath) {
 
 void MoveFile(const char* sourcePath, const char* destinationPath) {
     if (rename(sourcePath, destinationPath) == 0) {
-        printf("Moved: %s -> %s\n", sourcePath, destinationPath);
+        printf("    Moved -> %s\n", destinationPath);
     } else {
         perror("Error moving file");
     }
