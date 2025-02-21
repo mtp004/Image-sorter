@@ -17,6 +17,7 @@ void MoveFile(const char* sourcePath, const char* destinationPath);
 int MakeFolder(const char* fpath);
 int SortDirectory(char* dname);
 int TokenizeAndProcess(char* str);
+int DisplayUI();
 #pragma endregion
 
 //static variable
@@ -25,19 +26,27 @@ static char* sortedPath;
 
 int main(void) {
     printf("Program starting...\n");
+    while(DisplayUI() != -1);
+    printf("Exited\n");
+    return 0;
+}
+
+int DisplayUI() {
     printf("Enter HOME subdirectories separated by space | Press [ENTER] to exit program: ");
     char buffer[100];
     if(fgets(buffer, 100, stdin) == NULL){
         perror("Input not properly received");
-        exit(0);
+        return -1;
     }
     size_t len = strlen(buffer);
     if (buffer[len - 1] == '\n') {
         buffer[len - 1] = '\0';
     }
-    if(buffer[0] == '\0') exit(0);
+    if(buffer[0] == '\0') return -1;
 
-    TokenizeAndProcess(buffer);
+    if(TokenizeAndProcess(buffer) == 0){
+        printf("SUCCESS\n");
+    }
     return 0;
 }
 
@@ -54,8 +63,7 @@ int TokenizeAndProcess(char* str) {
     //Loop through the string
     while (*str) {
         // Skip spaces
-        while (*str == ' ') str++;
-        if (!*str) break;        
+        while (*str == ' ') str++;   
         // Count characters
         count = 0;
         while (*str && *str != ' ') {
@@ -66,7 +74,7 @@ int TokenizeAndProcess(char* str) {
             strncpy(buf, str-count, count);
             buf[count]='\0';
             if(SortDirectory(buf) == -1) return -1;
-        }
+        } else return -1;
     }
     return 0;
 }
@@ -75,13 +83,14 @@ int SortDirectory(char* dname){
     wdPath = GetWorkingDirectoryPath(dname);  //No check
     sortedPath = GetSortedFolderPath("images");   //No check
     if(MakeFolder(sortedPath) == -1){
-        printf("Error: Entered directory '%s' does not exist", dname);
+        printf("Error: Entered directory '%s' does not exist\n", dname);
         FreeStaticMemory(); 
         return -1;
     }
 
-    DIR* sortDirectory = OpenDirectory(wdPath);   // maybe check
+    DIR* sortDirectory = opendir(wdPath);
     MoveFilesToFolder(sortDirectory, sortedPath);  //no check
+    closedir(sortDirectory);
     FreeStaticMemory();
     return 0;
 }
@@ -157,16 +166,6 @@ char* GetWorkingDirectoryPath(char* wd){
 
     printf("%s path: %s\n", wd, wdpath);
     return wdpath;
-}
-
-DIR* OpenDirectory(char* path){
-    DIR *dir = opendir(path);
-    if (dir == NULL) {
-        perror("Error: cannot open directory to sort");
-        exit(1);
-    }
-
-    return dir;
 }
 
 int IsImageFile(const char* filename) {
