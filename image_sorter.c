@@ -32,9 +32,9 @@ int main(void) {
 }
 
 int DisplayUI() {
-    printf("Enter HOME subdirectories separated by space | Press [ENTER] to exit program: ");
-    char buffer[100];
-    if(fgets(buffer, 100, stdin) == NULL){
+    printf("Enter HOME subdirectories separated by space | Press [ENTER] to exit program:\n");
+    char buffer[200];
+    if(fgets(buffer, 200, stdin) == NULL){
         perror("Input not properly received");
         return -1;
     }
@@ -140,6 +140,7 @@ char* GetSortedFolderPath(char* fname) {
     char* folderPath = (char*)malloc(pathLen);
     if (folderPath == NULL) {
         perror("Error allocating memory for sorted folder path");
+        FreeStaticMemory();
         exit(1);
     }
 
