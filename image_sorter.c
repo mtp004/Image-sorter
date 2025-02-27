@@ -22,10 +22,9 @@ char **LoadFileTypeConfig(const char *filename, int *count);
 #pragma endregion
 
 #define CONFIG_PATH "/Users/tripham/Desktop/image-sorter/config.txt"
-#define MAX_TYPES 10
+#define TYPE_BUFFER_SIZE 10
 
 //static variable
-static char* sortedPath;
 static char** filetypes;
 static int typeCount;
 
@@ -40,6 +39,7 @@ int main(void) {
     }
 
     while(DisplayUI() != -1);
+    FreeStaticMemory();
     printf("Exited\n");
     return 0;
 }
@@ -63,8 +63,7 @@ int DisplayUI() {
 }
 
 void FreeStaticMemory(){
-    free(sortedPath);
-    sortedPath = NULL;
+    printf("Logic for freeing static variables here");
 }
 
 int TokenizeAndProcess(char* str) {
@@ -91,17 +90,15 @@ int TokenizeAndProcess(char* str) {
 
 int SortDirectory(char* dname){
     char* wd = GetWorkingDirectoryPath(dname);  //No check
-    sortedPath = GetSortedFolderPath("images", wd);   //No check
+    char* sortedPath = GetSortedFolderPath("images", wd);   //No check
     if(MakeFolder(sortedPath) == -1){
         printf("Error: Entered directory '%s' does not exist\n", dname);
-        FreeStaticMemory(); 
         return -1;
     }
 
     DIR* sortDirectory = opendir(wd);
     MoveFilesToFolder(wd ,sortDirectory, sortedPath);  //no check
     closedir(sortDirectory);
-    FreeStaticMemory();
     return 0;
 }
 
@@ -118,7 +115,7 @@ int MakeFolder(const char* fpath) {
     return 0;
 }
 
-void MoveFilesToFolder(char* wd,DIR* sourceDir, char* fpath) {
+void MoveFilesToFolder(char* wd,DIR* sourceDir, char* sortPath) {
     struct dirent* entry;
     char srcFilePath[1024];
     char dstFilePath[1024];
@@ -131,7 +128,7 @@ void MoveFilesToFolder(char* wd,DIR* sourceDir, char* fpath) {
             printf("  Found image: %s\n", entry->d_name);
             snprintf(srcFilePath, sizeof(srcFilePath), "%s/%s", wd, entry->d_name);
 
-            snprintf(dstFilePath, sizeof(dstFilePath), "%s/%s", fpath, entry->d_name);
+            snprintf(dstFilePath, sizeof(dstFilePath), "%s/%s", sortPath, entry->d_name);
             MoveFile(srcFilePath, dstFilePath);
         }
     }
@@ -206,7 +203,7 @@ char **LoadFileTypeConfig(const char *filename, int *count) {
             start++;  // Move past '='
 
             char *token = strtok(start, ", \n");  // Split by comma, space, newline
-            while (token && *count < MAX_TYPES) {
+            while (token && *count < TYPE_BUFFER_SIZE) {
                 types = realloc(types, (*count + 1) * sizeof(char *));
                 if (!types) {
                     perror("Memory allocation failed");
