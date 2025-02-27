@@ -11,8 +11,8 @@ void FreeStaticMemory();
 char* GetWorkingDirectoryPath(char* wd);
 DIR* OpenDirectory(char* path);
 int IsImageFile(const char* filename);
-void MoveFilesToFolder(DIR* sourceDir, char* fpath);
-char* GetSortedFolderPath(char* fname);
+void MoveFilesToFolder(char* wd,DIR* sourceDir, char* fpath);
+char* GetSortedFolderPath(char* fname, char* wd);
 void MoveFile(const char* sourcePath, const char* destinationPath);
 int MakeFolder(const char* fpath);
 int SortDirectory(char* dname);
@@ -21,7 +21,6 @@ int DisplayUI();
 #pragma endregion
 
 //static variable
-static char* wdPath;
 static char* sortedPath;
 
 int main(void) {
@@ -39,9 +38,8 @@ int DisplayUI() {
         return -1;
     }
     size_t len = strlen(buffer);
-    if (buffer[len - 1] == '\n') {
-        buffer[len - 1] = '\0';
-    }
+    buffer[len - 1] = '\0';
+
     if(buffer[0] == '\0') return -1;
 
     if(TokenizeAndProcess(buffer) == 0){
@@ -51,8 +49,6 @@ int DisplayUI() {
 }
 
 void FreeStaticMemory(){
-    free(wdPath);
-    wdPath = NULL;
     free(sortedPath);
     sortedPath = NULL;
 }
@@ -80,16 +76,16 @@ int TokenizeAndProcess(char* str) {
 }
 
 int SortDirectory(char* dname){
-    wdPath = GetWorkingDirectoryPath(dname);  //No check
-    sortedPath = GetSortedFolderPath("images");   //No check
+    char* wd = GetWorkingDirectoryPath(dname);  //No check
+    sortedPath = GetSortedFolderPath("images", wd);   //No check
     if(MakeFolder(sortedPath) == -1){
         printf("Error: Entered directory '%s' does not exist\n", dname);
         FreeStaticMemory(); 
         return -1;
     }
 
-    DIR* sortDirectory = opendir(wdPath);
-    MoveFilesToFolder(sortDirectory, sortedPath);  //no check
+    DIR* sortDirectory = opendir(wd);
+    MoveFilesToFolder(wd ,sortDirectory, sortedPath);  //no check
     closedir(sortDirectory);
     FreeStaticMemory();
     return 0;
@@ -108,7 +104,7 @@ int MakeFolder(const char* fpath) {
     return 0;
 }
 
-void MoveFilesToFolder(DIR* sourceDir, char* fpath) {
+void MoveFilesToFolder(char* wd,DIR* sourceDir, char* fpath) {
     struct dirent* entry;
     char srcFilePath[1024];
     char dstFilePath[1024];
@@ -119,7 +115,7 @@ void MoveFilesToFolder(DIR* sourceDir, char* fpath) {
             && IsImageFile(entry->d_name)
         ) { 
             printf("  Found image: %s\n", entry->d_name);
-            snprintf(srcFilePath, sizeof(srcFilePath), "%s/%s", wdPath, entry->d_name);
+            snprintf(srcFilePath, sizeof(srcFilePath), "%s/%s", wd, entry->d_name);
 
             snprintf(dstFilePath, sizeof(dstFilePath), "%s/%s", fpath, entry->d_name);
             MoveFile(srcFilePath, dstFilePath);
@@ -135,8 +131,8 @@ void MoveFile(const char* sourcePath, const char* destinationPath) {
     }
 }
 
-char* GetSortedFolderPath(char* fname) {
-    size_t pathLen = strlen(wdPath) + strlen(fname) + 2;
+char* GetSortedFolderPath(char* fname, char* wd) {
+    size_t pathLen = strlen(wd) + strlen(fname) + 2;
     char* folderPath = (char*)malloc(pathLen);
     if (folderPath == NULL) {
         perror("Error allocating memory for sorted folder path");
@@ -144,7 +140,7 @@ char* GetSortedFolderPath(char* fname) {
         exit(1);
     }
 
-    snprintf(folderPath, pathLen, "%s/%s", wdPath, fname);
+    snprintf(folderPath, pathLen, "%s/%s", wd, fname);
     return folderPath;
 }
 
