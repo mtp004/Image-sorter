@@ -18,13 +18,27 @@ int MakeFolder(const char* fpath);
 int SortDirectory(char* dname);
 int TokenizeAndProcess(char* str);
 int DisplayUI();
+char **LoadFileTypeConfig(const char *filename, int *count);
 #pragma endregion
+
+#define CONFIG_PATH "/Users/tripham/Desktop/image-sorter/config.txt"
+#define MAX_TYPES 10
 
 //static variable
 static char* sortedPath;
+static char** filetypes;
+static int typeCount;
 
 int main(void) {
     printf("Program starting...\n");
+    typeCount = 0;
+    filetypes = LoadFileTypeConfig(CONFIG_PATH, &typeCount);
+
+    printf("Loaded file types:\n");
+    for (int i = 0; i < typeCount; i++) {
+        printf("%s\n", filetypes[i]);
+    }
+
     while(DisplayUI() != -1);
     printf("Exited\n");
     return 0;
@@ -108,8 +122,8 @@ void MoveFilesToFolder(char* wd,DIR* sourceDir, char* fpath) {
     struct dirent* entry;
     char srcFilePath[1024];
     char dstFilePath[1024];
-
     while ((entry = readdir(sourceDir)) != NULL) {
+        //printf("(%d, %d) ", entry->d_type, IsImageFile(entry->d_name));
         if (
             entry->d_type == DT_REG 
             && IsImageFile(entry->d_name)
@@ -166,15 +180,55 @@ char* GetWorkingDirectoryPath(char* wd){
 }
 
 int IsImageFile(const char* filename) {
-    const char* extensions[] = {".jpg", ".png", ".jpeg", ".gif", ".bmp", ".tiff"};
-    size_t numExtensions = sizeof(extensions) / sizeof(extensions[0]);
-
-    for (size_t i = 0; i < numExtensions; i++) {
-        if (strstr(filename, extensions[i])) { // Check if filename contains an image extension
+    // size_t numExtensions = sizeof(filetypes) / sizeof(filetypes[0]);
+    for (size_t i = 0; i < (size_t)typeCount; i++) {
+        if (strstr(filename, filetypes[i])) { // Check if filename contains an image extension
             return 1;
         }
     }
     return 0;
+}
+
+char **LoadFileTypeConfig(const char *filename, int *count) {
+    FILE *file = fopen(filename, "r");
+    if (!file) {
+        perror("Failed to open config file");
+        exit(EXIT_FAILURE);
+    }
+
+    char line[256];
+    char **types = NULL;
+    *count = 0;  // Reset count
+
+    if (fgets(line, sizeof(line), file)) {
+        char *start = strchr(line, '=');
+        if (start) {
+            start++;  // Move past '='
+
+            char *token = strtok(start, ", \n");  // Split by comma, space, newline
+            while (token && *count < MAX_TYPES) {
+                types = realloc(types, (*count + 1) * sizeof(char *));
+                if (!types) {
+                    perror("Memory allocation failed");
+                    exit(EXIT_FAILURE);
+                }
+
+                types[*count] = malloc(strlen(token) + 1);
+                if (!types[*count]) {
+                    perror("Memory allocation failed");
+                    exit(EXIT_FAILURE);
+                }
+
+                strcpy(types[*count], token);
+                (*count)++;
+
+                token = strtok(NULL, ", \n");
+            }
+        }
+    }
+
+    fclose(file);
+    return types;
 }
 
 // void PrintImageInDirectory(DIR* dir) {
