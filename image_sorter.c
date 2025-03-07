@@ -2,14 +2,12 @@
 #include <stdlib.h>  // For memory allocation, exit, etc.
 #include <string.h>  // For string manipulation functions such as strcmp, strcpy, etc.
 #include <dirent.h>  // For directory traversal functions like opendir, readdir, etc.
-#include <sys/stat.h> // For file status functions like stat.
 #include <sys/stat.h> // For getting image information
 #include <errno.h>
 
 #pragma region Function Prototypes
 void FreeStaticMemory();
 char* GetWorkingDirectoryPath(char* wd);
-DIR* OpenDirectory(char* path);
 int IsImageFile(const char* filename);
 void MoveFilesToFolder(char* wd,DIR* sourceDir, char* fpath);
 char* GetSortedFolderPath(char* fname, char* wd);
@@ -25,7 +23,7 @@ int LoadFileTypeConfig(const char *filename, char* buffer[], int *count);
 #define TYPE_BUFFER_SIZE 10
 
 //static variable
-static char* typeBuffer[TYPE_BUFFER_SIZE];
+static char* typeBuffer[TYPE_BUFFER_SIZE] = {NULL};
 static int typeCount;
 
 int main(void) {
@@ -63,7 +61,10 @@ int DisplayUI() {
 }
 
 void FreeStaticMemory(){
-    printf("Logic for freeing static variables here");
+    for(int i = 0; i<typeCount; i++){
+        free(typeBuffer[i]);
+        typeBuffer[i] = NULL;
+    }
 }
 
 int TokenizeAndProcess(char* str) {
@@ -93,12 +94,17 @@ int SortDirectory(char* dname){
     char* sortedPath = GetSortedFolderPath("images", wd);   //No check
     if(MakeFolder(sortedPath) == -1){
         printf("Error: Entered directory '%s' does not exist\n", dname);
+        free(wd);
+        free(sortedPath);
         return -1;
     }
 
     DIR* sortDirectory = opendir(wd);
     MoveFilesToFolder(wd ,sortDirectory, sortedPath);  //no check
     closedir(sortDirectory);
+
+    free(wd);
+    free(sortedPath);
     return 0;
 }
 
@@ -172,7 +178,7 @@ char* GetWorkingDirectoryPath(char* wd){
     // Construct the Desktop path
     snprintf(wdpath, pathLen, "%s/%s", homeDirectory, wd);
 
-    printf("%s path: %s\n", wd, wdpath);
+    printf("\n%s path: %s\n", wd, wdpath);
     return wdpath;
 }
 
@@ -188,6 +194,7 @@ int IsImageFile(const char* filename) {
 
 int LoadFileTypeConfig(const char *filename, char* buffer[], int *count) {
     int len = 0;
+    char* temp;
 
     FILE *file = fopen(filename, "r");
     if (!file) {
@@ -203,7 +210,13 @@ int LoadFileTypeConfig(const char *filename, char* buffer[], int *count) {
             tokenPointer = strtok(tokenPointer, " ");
             while(tokenPointer && *count<TYPE_BUFFER_SIZE){
                 len = strlen(tokenPointer);
-                buffer[*count] = (char*)malloc(len+1);
+
+                if ((temp = (char*)malloc(len+1)) == NULL){
+                    FreeStaticMemory();
+                    printf("Error: failed to allocate memory");
+                    return -1;
+                }
+                buffer[*count] = temp;
 
                 strncpy(buffer[*count], tokenPointer, len+1);
                 tokenPointer = strtok(NULL, " ");

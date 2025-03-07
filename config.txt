@@ -1,1 +1,1 @@
-filetypes=.png .jpg .jpeg .HEIC .pdf
+filetypes=.png .jpg .jpeg .HEIC .pdf .webp
