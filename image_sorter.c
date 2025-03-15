@@ -103,6 +103,15 @@ int SortDirectory(char* dname){
     MoveFilesToFolder(wd ,sortDirectory, sortedPath);  //no check
     closedir(sortDirectory);
 
+    char buff[100];
+    printf("Delete everything in folder? (y/n): ");
+    fgets(buff, 100, stdin);   
+    if(buff[0] == 'y'){
+        printf("Deleted everything\n");
+    } else if (buff[0] == '\n'){
+        printf("Please reenter input\ns");
+    } else printf("Invalid input\n");
+
     free(wd);
     free(sortedPath);
     return 0;
