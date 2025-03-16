@@ -4,8 +4,11 @@
 #include <dirent.h>  // For directory traversal functions like opendir, readdir, etc.
 #include <sys/stat.h> // For getting image information
 #include <errno.h>
+#include <unistd.h>
 
 #pragma region Function Prototypes
+int DeleteAllInDirectory(const char* dpath);
+int PromptDirectoryDeletion(char* wd, char* folderPath);
 void FreeStaticMemory();
 char* GetWorkingDirectoryPath(char* wd);
 int IsImageFile(const char* filename);
@@ -90,6 +93,7 @@ int TokenizeAndProcess(char* str) {
 }
 
 int SortDirectory(char* dname){
+    printf("\n- - - - - - - - - - - - - - - - -");
     char* wd = GetWorkingDirectoryPath(dname);  //No check
     char* sortedPath = GetSortedFolderPath("images", wd);   //No check
     if(MakeFolder(sortedPath) == -1){
@@ -103,14 +107,7 @@ int SortDirectory(char* dname){
     MoveFilesToFolder(wd ,sortDirectory, sortedPath);  //no check
     closedir(sortDirectory);
 
-    char buff[100];
-    printf("Delete everything in folder? (y/n): ");
-    fgets(buff, 100, stdin);   
-    if(buff[0] == 'y'){
-        printf("Deleted everything\n");
-    } else if (buff[0] == '\n'){
-        printf("Please reenter input\ns");
-    } else printf("Invalid input\n");
+    while(PromptDirectoryDeletion(wd, sortedPath) != 0);
 
     free(wd);
     free(sortedPath);
@@ -238,6 +235,40 @@ int LoadFileTypeConfig(const char *filename, char* buffer[], int *count) {
     return 0;
 }
 
+int PromptDirectoryDeletion(char* wd, char* folderPath){
+    printf("%s%s", wd, folderPath);
+    char buff[100];
+    printf("Delete everything in folder? (y/n): ");
+    fgets(buff, 100, stdin);   
+
+    if(buff[0] == 'y'){
+        //Logic for deleting here
+        if(DeleteAllInDirectory(folderPath) != 0) return -1;
+        printf("Deleted everything\n");
+    } else if (buff[0] != 'n'){
+        printf("Invalid input\n");
+        return -1;
+    }
+    return 0;
+}
+
+int DeleteAllInDirectory(const char* dpath){
+    struct dirent* entry;
+    if(chdir(dpath) == -1) return -1;
+
+    DIR* dir = opendir(".");
+    if(dir == NULL) return -1;
+
+    while((entry = readdir(dir)) != NULL){
+        if(entry->d_type == DT_REG){
+            if(remove(entry->d_name) != 0){
+                printf("Error: Failed to delete file: %s\n", entry->d_name);
+            }
+        }
+    }
+    return 0;
+}
+
 // void PrintImageInDirectory(DIR* dir) {
 //     struct dirent* entry;
 //     while ((entry = readdir(dir)) != NULL) {
@@ -249,3 +280,4 @@ int LoadFileTypeConfig(const char *filename, char* buffer[], int *count) {
 //         }
 //     }
 // }
+
