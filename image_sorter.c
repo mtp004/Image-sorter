@@ -5,9 +5,10 @@
 #include <sys/stat.h> // For getting image information
 #include <errno.h>
 #include <unistd.h>
+#include <time.h>
 
 #pragma region Function Prototypes
-int DeleteAllInDirectory(const char* dpath);
+int MoveDirectoryToTrash(const char* dpath);
 int PromptDirectoryDeletion(char* wd, char* folderPath);
 void FreeStaticMemory();
 char* GetWorkingDirectoryPath(char* wd);
@@ -23,11 +24,13 @@ int LoadFileTypeConfig(const char *filename, char* buffer[], int *count);
 #pragma endregion
 
 #define CONFIG_PATH "/Users/tripham/Desktop/image-sorter/config.txt"
+#define TRASH_PATH "/Users/tripham/.Trash"
 #define TYPE_BUFFER_SIZE 10
 
 //static variable
 static char* typeBuffer[TYPE_BUFFER_SIZE] = {NULL};
 static int typeCount;
+
 
 int main(void) {
     printf("Program starting...\n");
@@ -236,14 +239,14 @@ int LoadFileTypeConfig(const char *filename, char* buffer[], int *count) {
 }
 
 int PromptDirectoryDeletion(char* wd, char* folderPath){
-    printf("%s%s", wd, folderPath);
+    printf("%s", wd);
     char buff[100];
-    printf("Delete everything in folder? (y/n): ");
+    printf("Move folder to Trash? (y/n): ");
     fgets(buff, 100, stdin);   
 
     if(buff[0] == 'y'){
         //Logic for deleting here
-        if(DeleteAllInDirectory(folderPath) != 0) return -1;
+        MoveDirectoryToTrash(folderPath);
         printf("Deleted everything\n");
     } else if (buff[0] != 'n'){
         printf("Invalid input\n");
@@ -252,20 +255,47 @@ int PromptDirectoryDeletion(char* wd, char* folderPath){
     return 0;
 }
 
-int DeleteAllInDirectory(const char* dpath){
-    struct dirent* entry;
-    if(chdir(dpath) == -1) return -1;
-
-    DIR* dir = opendir(".");
-    if(dir == NULL) return -1;
-
-    while((entry = readdir(dir)) != NULL){
-        if(entry->d_type == DT_REG){
-            if(remove(entry->d_name) != 0){
-                printf("Error: Failed to delete file: %s\n", entry->d_name);
-            }
-        }
+int MoveDirectoryToTrash(const char* dpath){
+    char buf[256];
+    char timebuf[64];
+    char final_path[512]; // Enough space for TRASH_PATH + des
+    time_t now;
+    struct tm *timeinfo;
+    
+    // Get current time
+    time(&now);
+    timeinfo = localtime(&now);
+    
+    // Format time in a more human-readable format
+    strftime(timebuf, sizeof(timebuf), "_%b-%d-%Y_%I:%M%p", timeinfo);
+    
+    // Original path processing
+    char* slash = strrchr(dpath, '/');
+    slash--;
+    while(*slash != '/') slash--;
+    slash++;
+    strcpy(buf, slash);
+    
+    // Replace slash with underscore
+    slash = strchr(buf, '/');
+    if(slash){
+        *slash = '_';
     }
+    
+    // Create the destination filename
+    size_t remaining_space = sizeof(buf) - strlen(buf) - 1;
+    strncat(buf, timebuf, remaining_space);
+    
+    // Combine TRASH_PATH with the destination filename
+    snprintf(final_path, sizeof(final_path), "%s/%s", TRASH_PATH, buf);
+
+    if (rename(dpath, final_path) != 0) {
+        // Handle error
+        printf("Error moving directory: %s\n", strerror(errno));
+        return -1;
+    }
+    printf("Folder successfully moved to Trash\n");
+
     return 0;
 }
 
