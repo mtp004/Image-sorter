@@ -1,1 +1,2 @@
 filetypes=.png .jpg .jpeg .HEIC .pdf .webp
+trashPath=/Users/tripham/.Trash

@@ -8,6 +8,7 @@
 #include <time.h>
 
 #pragma region Function Prototypes
+int LoadConfigData(char* configPath);
 int MoveDirectoryToTrash(const char* dpath);
 int PromptDirectoryDeletion(char* wd, char* folderPath);
 void FreeStaticMemory();
@@ -20,27 +21,29 @@ int MakeFolder(const char* fpath);
 int SortDirectory(char* dname);
 int TokenizeAndProcess(char* str);
 int DisplayUI();
-int LoadFileTypeConfig(const char *filename, char* buffer[], int *count);
+int LoadFileTypeConfig(const char line[512], char* buffer[], int *count);
+int LoadTrashPathConfig(const char line[512], char trashPath[], size_t trashPath_size);
 #pragma endregion
 
 #define CONFIG_PATH "/Users/tripham/Desktop/image-sorter/config.txt"
-#define TRASH_PATH "/Users/tripham/.Trash"
 #define TYPE_BUFFER_SIZE 10
 
 //static variable
 static char* typeBuffer[TYPE_BUFFER_SIZE] = {NULL};
 static int typeCount;
+static char trashPath[512];
 
 
 int main(void) {
     printf("Program starting...\n");
     typeCount = 0;
-    if(LoadFileTypeConfig(CONFIG_PATH, typeBuffer, &typeCount) == -1) return EXIT_FAILURE;
+    if(LoadConfigData(CONFIG_PATH) == -1) return EXIT_FAILURE;
 
     printf("Loaded file types:\n");
     for (int i = 0; i < typeCount; i++) {
         printf("%s\n", typeBuffer[i]);
     }
+    printf("Trash bin path: %s\n", trashPath);
 
     while(DisplayUI() != -1);
     FreeStaticMemory();
@@ -201,43 +204,6 @@ int IsImageFile(const char* filename) {
     return 0;
 }
 
-int LoadFileTypeConfig(const char *filename, char* buffer[], int *count) {
-    int len = 0;
-    char* temp;
-
-    FILE *file = fopen(filename, "r");
-    if (!file) {
-        perror("Failed to open config file");
-        return -1;
-    }
-    *count = 0;
-    char line[256];
-    if(fgets(line, 256, file) != NULL){
-        char* tokenPointer = strchr(line, '=');
-        if(tokenPointer){
-            tokenPointer++;
-            tokenPointer = strtok(tokenPointer, " ");
-            while(tokenPointer && *count<TYPE_BUFFER_SIZE){
-                len = strlen(tokenPointer);
-
-                if ((temp = (char*)malloc(len+1)) == NULL){
-                    FreeStaticMemory();
-                    printf("Error: failed to allocate memory");
-                    return -1;
-                }
-                buffer[*count] = temp;
-
-                strncpy(buffer[*count], tokenPointer, len+1);
-                tokenPointer = strtok(NULL, " ");
-                (*count)++;
-            }
-        }
-    } else return -1;
-
-    fclose(file);
-    return 0;
-}
-
 int PromptDirectoryDeletion(char* wd, char* folderPath){
     printf("%s", wd);
     char buff[100];
@@ -247,7 +213,6 @@ int PromptDirectoryDeletion(char* wd, char* folderPath){
     if(buff[0] == 'y'){
         //Logic for deleting here
         MoveDirectoryToTrash(folderPath);
-        printf("Deleted everything\n");
     } else if (buff[0] != 'n'){
         printf("Invalid input\n");
         return -1;
@@ -267,7 +232,7 @@ int MoveDirectoryToTrash(const char* dpath){
     timeinfo = localtime(&now);
     
     // Format time in a more human-readable format
-    strftime(timebuf, sizeof(timebuf), "_%b-%d-%Y_%I:%M%p", timeinfo);
+    strftime(timebuf, sizeof(timebuf), "_%b-%d-%Y_%I;%M%p", timeinfo);
     
     // Original path processing
     char* slash = strrchr(dpath, '/');
@@ -287,15 +252,82 @@ int MoveDirectoryToTrash(const char* dpath){
     strncat(buf, timebuf, remaining_space);
     
     // Combine TRASH_PATH with the destination filename
-    snprintf(final_path, sizeof(final_path), "%s/%s", TRASH_PATH, buf);
+    snprintf(final_path, sizeof(final_path), "%s/%s", trashPath, buf);
 
     if (rename(dpath, final_path) != 0) {
         // Handle error
         printf("Error moving directory: %s\n", strerror(errno));
         return -1;
     }
-    printf("Folder successfully moved to Trash\n");
+    printf("Success: %s ==> Trash\n", dpath);
 
+    return 0;
+}
+
+int LoadTrashPathConfig(const char line[512], char trashPath[], size_t trashPath_size){
+    if(line == NULL || line[0] == '\0') return -1;
+
+    char* path = strchr(line, '=');
+    if (!path) {
+        return -1;  // No '=' found in the line
+    }
+    path++;
+
+    strncpy(trashPath, path, trashPath_size-1);
+    trashPath[trashPath_size-1] = '\0';
+    return 0;
+}
+
+int LoadFileTypeConfig(const char line[512], char* buffer[], int *count) {
+    int len = 0;
+    char* temp;
+
+    *count = 0;
+    char* tokenPointer = strchr(line, '=');
+    if(tokenPointer){
+        tokenPointer++;
+        tokenPointer = strtok(tokenPointer, " ");
+        while(tokenPointer && *count<TYPE_BUFFER_SIZE){
+            len = strlen(tokenPointer);
+
+            if ((temp = (char*)malloc(len+1)) == NULL){
+                FreeStaticMemory();
+                printf("Error: failed to allocate memory");
+                return -1;
+            }
+            buffer[*count] = temp;
+
+            strncpy(buffer[*count], tokenPointer, len+1);
+            tokenPointer = strtok(NULL, " ");
+            (*count)++;
+        }
+    }
+    return 0;
+}
+
+int LoadConfigData(char* configPath){
+    char line[512];
+    int line_size = sizeof(line);
+
+    FILE *file = fopen(configPath, "r");
+    if (!file) {
+        perror("Failed to open config file");
+        return -1;
+    }
+
+    if(fgets(line, line_size, file) == NULL){
+        printf("Failed to read filetypes config");
+        return -1;
+    }
+    if(LoadFileTypeConfig(line, typeBuffer, &typeCount) == -1) return -1;
+
+    if(fgets(line, line_size, file) == NULL){
+        printf("Failed to read trash bin path config");
+        return -1;
+    }
+    if(LoadTrashPathConfig(line, trashPath, sizeof(trashPath)) == -1) return -1;
+
+    fclose(file);
     return 0;
 }
 
