@@ -1,11 +1,13 @@
-Changelog:
+Changelog
+=========
 
-Commit: cd55d6d8df04ec47c83ab40dce621d9e38eb1666
-Date: Mon Mar 17, 2025
-Author: Tri Pham <tri.pham121@icloud.com>
+## [Tue Mar 18, 2025]
+- Updated `config.txt` to include `trashPath` configuration.
+- Recompiled `image-sorter` binary.
+- Refactored `LoadFileTypeConfig` to process a single line instead of reading from a file.
+- Introduced `LoadConfigData` to handle reading multiple configuration lines.
+- Implemented `LoadTrashPathConfig` to extract the trash path from the config file.
+- Modified `MoveDirectoryToTrash` to use the dynamically loaded trash path instead of a hardcoded value.
+- Changed timestamp format in `MoveDirectoryToTrash` to use semicolons instead of colons for compatibility.
+- Removed redundant `LoadFileTypeConfig` file-based function.
 
-Changes:
-- Modified the `PromptDirectoryDeletion` function to move the directory to trash instead of permanently deleting it.
-- Added a new function `MoveDirectoryToTrash` to handle moving directories to the trash.
-- Implemented timestamp-based folder renaming to avoid collisions when moving to trash.
-- Removed the old `DeleteAllInDirectory` function, as the deletion now triggers a move to trash.
