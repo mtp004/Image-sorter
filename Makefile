@@ -8,7 +8,7 @@ CFLAGS = -Wall -Wextra -Werror -std=c11
 TARGET = image-sorter
 
 # Source files
-SRCS = image_sorter.c
+SRCS = main.c
 
 # Object files (replace .c with .o)
 OBJS = $(SRCS:.c=.o)

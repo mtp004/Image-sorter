@@ -1,13 +1,23 @@
-Changelog
-=========
+# Changelog
 
-## [Tue Mar 18, 2025]
-- Updated `config.txt` to include `trashPath` configuration.
-- Recompiled `image-sorter` binary.
-- Refactored `LoadFileTypeConfig` to process a single line instead of reading from a file.
-- Introduced `LoadConfigData` to handle reading multiple configuration lines.
-- Implemented `LoadTrashPathConfig` to extract the trash path from the config file.
-- Modified `MoveDirectoryToTrash` to use the dynamically loaded trash path instead of a hardcoded value.
-- Changed timestamp format in `MoveDirectoryToTrash` to use semicolons instead of colons for compatibility.
-- Removed redundant `LoadFileTypeConfig` file-based function.
+## [1.0.0] - 2025-03-21
 
+### Added
+- New modular architecture with separate files:
+  - `main.c`: Core program functionality
+  - `main.h`: Header file with function prototypes
+  - `config.c`: Configuration loading logic
+  - `config.h`: Configuration declarations and constants
+- Configuration file support for:
+  - Customizable file types to be sorted
+  - Configurable trash bin path
+
+### Changed
+- Renamed main source file from `image_sorter.c` to `main.c` in Makefile
+- Restructured program flow with modular functions
+- Enhanced user interface with clearer prompts
+- Improved directory processing with better error handling
+
+### Fixed
+- Added validation for configuration file reading
+- Improved error messaging throughout the application
