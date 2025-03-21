@@ -16,7 +16,7 @@ int LoadTrashPathConfig(const char line[BUFSIZ], char trashPath[], size_t trashP
         return -1;  // No '=' found in the line
     }
     path++;
-    path = strtok(path, " ");
+    path = strtok(path, "\n ");
     if(path == NULL){
         printf("Error: trash path config uninitialized\n");
         return -1;
@@ -34,9 +34,9 @@ int LoadFileTypeConfig(const char line[BUFSIZ], char* buffer[], int *count) {
     char* tokenPointer = strchr(line, '=');
     if(tokenPointer){
         tokenPointer++;
-        tokenPointer = strtok(tokenPointer, " ");
+        tokenPointer = strtok(tokenPointer, "\n ");
 
-        if(*tokenPointer == '\n'){
+        if(tokenPointer == NULL){
             printf("Error: filetypes config uninitialized\n");
             return -1;
         }
